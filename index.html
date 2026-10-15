@@ -45,9 +45,26 @@ theta2=candidates[0].b;
 updateSliders();
 }
 function setMode(v){mode=v;active=false;finished=false;carry=-1;reset();$('manual').classList.toggle('hidden',v!=='manual');$('grip').classList.toggle('hidden',v!=='manual');$('mission').textContent=v==='leg'?'Exploración: pierna robótica':'Misión: rescata las baterías';$('start').disabled=v==='leg';$('help').textContent=v==='leg'?'Mueve lentamente la pierna con apoyo estable: 0 cadera, 1 rodilla, 2 tobillo. Sin saltos.':'Mueve el mouse para guiar la pinza, o usa los deslizadores. Espera a que el contador llegue a cero en cada batería y en la zona de carga del reactor. También puedes usar Agarrar / Soltar.';}
-function reset(){active=false;finished=false;time=60;delivered=0;carry=-1;dwell=0;remaining=3;targetKey='';batteries.forEach(b=>b.done=false);updateEnergy();$('capture').textContent='Acerca la pinza a una batería.';$('clock').textContent='60';$('points').textContent='0/3';$('message').textContent='¡Prepara tu robot!'}
+function reset(){active=false;finished=false;time=60;delivered=0;carry=-1;dwell=0;remaining=3;targetKey='';batteries.forEach(b=>b.done=false);randomizeBatteries();updateEnergy();$('capture').textContent='Acerca la pinza a una batería.';$('clock').textContent='60';$('points').textContent='0/3';$('message').textContent='¡Prepara tu robot!'}
 function begin(){if(mode==='leg')return;reset();active=true;$('message').textContent='¡Comienza el rescate!'}
 
+function randomizeBatteries(){
+ const placed=[];
+ const fallback=[{x:460,y:112},{x:570,y:306},{x:398,y:445}];
+ for(let i=0;i<batteries.length;i++){
+  let candidate=null;
+  for(let attempt=0;attempt<400;attempt++){
+   const p={x:Math.round(120+Math.random()*460),y:Math.round(75+Math.random()*390)};
+   if(dist(p,base)>L1+L2-22||dist(p,base)<95)continue;
+   if(dist(p,depot)<depot.r+PICK_RADIUS+15)continue;
+   if(placed.some(q=>dist(q,p)<145))continue;
+   candidate=p;break;
+  }
+  if(!candidate)candidate=fallback.find(p=>dist(p,base)<L1+L2-22&&dist(p,depot)>depot.r+PICK_RADIUS+15&&!placed.some(q=>dist(q,p)<145))||fallback[i];
+  placed.push(candidate);
+  batteries[i].x=candidate.x;batteries[i].y=candidate.y;
+ }
+}
 function updateEnergy(){const p=Math.round(delivered/3*100);$('energyFill').style.width=p+'%';$('energyValue').textContent=p+' %';$('energyMeter').setAttribute('aria-valuenow',String(p))}
 function pickBattery(i){if(i<0||batteries[i].done)return;carry=i;dwell=0;targetKey='';$('message').textContent='✅ ¡Batería tomada!';$('capture').textContent='¡BATERÍA ASEGURADA! Ahora ve al reactor.'}
 function deliverBattery(){if(carry<0)return;batteries[carry].done=true;carry=-1;delivered++;dwell=0;targetKey='';$('message').textContent='⚡ ¡Batería entregada!';$('capture').textContent='¡Energía entregada! Busca otra batería.';showProgress()}
